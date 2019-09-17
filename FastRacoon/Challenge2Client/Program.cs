@@ -65,13 +65,13 @@ namespace Challenge2Client
 
         private static void CreateIndex(string indexName, SearchServiceClient serviceClient)
         {
-            //var definition = new Index()
-            //{
-            //    Name = indexName,
-            //    Fields = FieldBuilder.BuildForType<Hotel>()
-            //};
+            var definition = new Index()
+            {
+                Name = indexName,
+                Fields = FieldBuilder.BuildForType<TravelContractContent>()
+            };
 
-            //serviceClient.Indexes.Create(definition);
+            serviceClient.Indexes.Create(definition);
         }
 
         //private static void RunQueries(ISearchIndexClient indexClient)
@@ -129,14 +129,14 @@ namespace Challenge2Client
         //    WriteDocuments(results);
         //}
 
-        //private static void WriteDocuments(DocumentSearchResult<Hotel> searchResults)
-        //{
-        //    //foreach (SearchResult<Hotel> result in searchResults.Results)
-        //    //{
-        //    //    Console.WriteLine(result.Document);
-        //    //}
+        private static void WriteDocuments(DocumentSearchResult<TravelContractContent> searchResults)
+        {
+            foreach (SearchResult<TravelContractContent> result in searchResults.Results)
+            {
+                Console.WriteLine(result.Document);
+            }
 
-        //    Console.WriteLine();
-        //}
+            Console.WriteLine();
+        }
     }
 }
