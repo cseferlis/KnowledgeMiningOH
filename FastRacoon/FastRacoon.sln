@@ -3,14 +3,16 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29230.47
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Challenge1Client", "Challenge1Client\Challenge1Client.csproj", "{9B7B7867-D3B9-45E6-932E-B5A5786C6BF2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Challenge1Client", "Challenge1Client\Challenge1Client.csproj", "{9B7B7867-D3B9-45E6-932E-B5A5786C6BF2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{192C77CC-7E73-4A66-BFBF-13FB286968D7}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "UnitTests\UnitTests.csproj", "{1A5B9126-B481-46B3-8643-8C82C2563279}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnitTests", "UnitTests\UnitTests.csproj", "{1A5B9126-B481-46B3-8643-8C82C2563279}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Challenge2Client", "Challenge2Client\Challenge2Client.csproj", "{27D9DC94-882C-436E-A189-E706B5B3867D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,6 +28,10 @@ Global
 		{1A5B9126-B481-46B3-8643-8C82C2563279}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1A5B9126-B481-46B3-8643-8C82C2563279}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1A5B9126-B481-46B3-8643-8C82C2563279}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27D9DC94-882C-436E-A189-E706B5B3867D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27D9DC94-882C-436E-A189-E706B5B3867D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27D9DC94-882C-436E-A189-E706B5B3867D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27D9DC94-882C-436E-A189-E706B5B3867D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
