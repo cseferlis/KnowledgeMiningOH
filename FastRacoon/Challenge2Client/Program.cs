@@ -11,12 +11,16 @@ namespace Challenge2Client
         // This sample shows how to delete, create, upload documents and query an index
         static void Main(string[] args)
         {
-            IConfigurationBuilder builder = new ConfigurationBuilder().AddJsonFile("appsettings.json");
-            IConfigurationRoot configuration = builder.Build();
+            SearchConfiguration configuration = new SearchConfiguration
+            {
+                SearchIndexName = "travelcontractindex",
+                SearchServiceAdminApiKey = "C7748B5DE38F1579AB6778141A44DADD",
+                SearchServiceName = "fastracoonsearch"
+            };
 
             SearchServiceClient serviceClient = CreateSearchServiceClient(configuration);
 
-            string indexName = configuration["SearchIndexName"];
+            string indexName = configuration.SearchIndexName;
 
             Console.WriteLine("{0}", "Deleting index...\n");
             DeleteIndexIfExists(indexName, serviceClient);
@@ -31,27 +35,24 @@ namespace Challenge2Client
 
             ISearchIndexClient indexClientForQueries = CreateSearchIndexClient(indexName, configuration);
 
+            // ToDo: Create Indexer
+            // here!!!!
+
             //RunQueries(indexClientForQueries);
 
             Console.WriteLine("{0}", "Complete.  Press any key to end application...\n");
             Console.ReadKey();
         }
 
-        private static SearchServiceClient CreateSearchServiceClient(IConfigurationRoot configuration)
+        private static SearchServiceClient CreateSearchServiceClient(SearchConfiguration configuration)
         {
-            string searchServiceName = configuration["SearchServiceName"];
-            string adminApiKey = configuration["SearchServiceAdminApiKey"];
-
-            SearchServiceClient serviceClient = new SearchServiceClient(searchServiceName, new SearchCredentials(adminApiKey));
+            SearchServiceClient serviceClient = new SearchServiceClient(configuration.SearchServiceName, new SearchCredentials(configuration.SearchServiceAdminApiKey));
             return serviceClient;
         }
 
-        private static SearchIndexClient CreateSearchIndexClient(string indexName, IConfigurationRoot configuration)
+        private static SearchIndexClient CreateSearchIndexClient(string indexName, SearchConfiguration configuration)
         {
-            string searchServiceName = configuration["SearchServiceName"];
-            string queryApiKey = configuration["SearchServiceQueryApiKey"];
-
-            SearchIndexClient indexClient = new SearchIndexClient(searchServiceName, indexName, new SearchCredentials(queryApiKey));
+            SearchIndexClient indexClient = new SearchIndexClient(configuration.SearchServiceName, indexName, new SearchCredentials(configuration.SearchServiceAdminApiKey));
             return indexClient;
         }
 
