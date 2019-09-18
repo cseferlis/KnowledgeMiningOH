@@ -25,8 +25,14 @@ namespace Challenge2Client
 
             string indexName = configuration.SearchIndexName;
 
-            Console.WriteLine("{0}", "Deleting index...\n");
-            DeleteIndexIfExists(indexName, serviceClient);
+            DataSource ds = new DataSource()
+            {
+                Name = "travelblobs",
+                Type = DataSourceType.AzureBlob,
+                Container = new DataContainer("documents"),
+                Credentials = new DataSourceCredentials("DefaultEndpointsProtocol=https;AccountName=margiesdocumentrepo;AccountKey=VzpvLxQAFzlQJqfogFA8b4INBZh6t9aExqwQrjTFYeHET+ydKaMTcIYp890JilEVG+oXPqruFsWNA9vsVo6d9g==;EndpointSuffix=core.windows.net")
+            };
+            serviceClient.DataSources.CreateOrUpdate(ds);
 
             Console.WriteLine("{0}", "Creating index...\n");
             CreateIndex(indexName, serviceClient);
@@ -43,7 +49,14 @@ namespace Challenge2Client
                  name: "travel-contract-indexer",
                  dataSourceName: configuration.DataSource,
                  targetIndexName: configuration.SearchIndexName,
-                 schedule: new IndexingSchedule(TimeSpan.FromDays(1)));
+                 schedule: new IndexingSchedule(TimeSpan.FromDays(1)),
+                 fieldMappings: new[]
+                 {
+                    new FieldMapping("metadata_storage_name","FileName"),
+                    new FieldMapping("metadata_storage_path","Url"),
+                    new FieldMapping("metadata_storage_last_modified","LastModified"),
+                    new FieldMapping("metadata_storage_size","Bytes"),
+                 });
 
             // Indexers contain metadata about how much they have already indexed 
             // If we already ran the sample, the indexer will remember that it already 
@@ -57,22 +70,29 @@ namespace Challenge2Client
             }
 
             serviceClient.Indexers.CreateOrUpdate(indexer);
+            var parameters =
+                new SearchParameters()
+                {
+                    SearchFields = new[] { "Content", "FileName", "Url" },
+                    Select = new[] { "FileName", "Url", "LastModified", "Bytes" },
 
+                };
 
-            // We created the indexer with a schedule, but we also 
-            // want to run it immediately 
-            Console.WriteLine("Running Azure SQL indexer...");
+            // Test Case 1 - the file name, URL, size, and last modified date of all documents that include "New York" (there should be 18)
+            var docSearchResult = indexClientForQueries.Documents.Search<TravelContractContent>("\"New York\"", parameters);
+            var count = docSearchResult.Results.Count;
 
-            try
-            {
-                serviceClient.Indexers.Run(indexer.Name);
-            }
-            catch (CloudException e) when (e.Response.StatusCode == (HttpStatusCode)429)
-            {
-                Console.WriteLine("Failed to run indexer: {0}", e.Response.Content);
-            }
+            // Test Case 2 - Document details based on multiple search terms - for example, details of all documents that include "London" and "Buckingham Palace" (there should be 2).
+            docSearchResult = indexClientForQueries.Documents.Search<TravelContractContent>("London +\"Buckingham Palace\"", parameters);
+            count = docSearchResult.Results.Count;
 
-            //RunQueries(indexClientForQueries);
+            // Test Case 3 - Filtering based on specific fields - for example, all documents that contain the term "Las Vegas" that have "reviews" in their URL (there should be 13)
+            docSearchResult = indexClientForQueries.Documents.Search<TravelContractContent>("content:\"Las Vegas\" AND url:reviews", parameters);
+            count = docSearchResult.Results.Count;
+
+            // Test Case 4 - and all documents containing the term "Las Vegas" that that do not have "reviews" in their URL (there should be 2).
+            docSearchResult = indexClientForQueries.Documents.Search<TravelContractContent>("content:\"Las Vegas\" NOT url:reviews", parameters);
+            count = docSearchResult.Results.Count;
 
             Console.WriteLine("{0}", "Complete.  Press any key to end application...\n");
             Console.ReadKey();
@@ -90,14 +110,6 @@ namespace Challenge2Client
             return indexClient;
         }
 
-        private static void DeleteIndexIfExists(string indexName, SearchServiceClient serviceClient)
-        {
-            if (serviceClient.Indexes.Exists(indexName))
-            {
-                serviceClient.Indexes.Delete(indexName);
-            }
-        }
-
         private static void CreateIndex(string indexName, SearchServiceClient serviceClient)
         {
             var definition = new Index()
@@ -106,63 +118,8 @@ namespace Challenge2Client
                 Fields = FieldBuilder.BuildForType<TravelContractContent>()
             };
 
-            serviceClient.Indexes.Create(definition);
+            serviceClient.Indexes.CreateOrUpdate(definition);
         }
-
-        //private static void RunQueries(ISearchIndexClient indexClient)
-        //{
-        //    SearchParameters parameters;
-        //    DocumentSearchResult<Hotel> results;
-
-        //    Console.WriteLine("Search the entire index for the term 'motel' and return only the HotelName field:\n");
-
-        //    parameters =
-        //        new SearchParameters()
-        //        {
-        //            Select = new[] { "HotelName" }
-        //        };
-
-        //    results = indexClient.Documents.Search<Hotel>("motel", parameters);
-
-        //    WriteDocuments(results);
-
-        //    Console.Write("Apply a filter to the index to find hotels with a room cheaper than $100 per night, ");
-        //    Console.WriteLine("and return the hotelId and description:\n");
-
-        //    parameters =
-        //        new SearchParameters()
-        //        {
-        //            Filter = "Rooms/any(r: r/BaseRate lt 100)",
-        //            Select = new[] { "HotelId", "Description" }
-        //        };
-
-        //    results = indexClient.Documents.Search<Hotel>("*", parameters);
-
-        //    WriteDocuments(results);
-
-        //    Console.Write("Search the entire index, order by a specific field (lastRenovationDate) ");
-        //    Console.Write("in descending order, take the top two results, and show only hotelName and ");
-        //    Console.WriteLine("lastRenovationDate:\n");
-
-        //    parameters =
-        //        new SearchParameters()
-        //        {
-        //            OrderBy = new[] { "LastRenovationDate desc" },
-        //            Select = new[] { "HotelName", "LastRenovationDate" },
-        //            Top = 2
-        //        };
-
-        //    results = indexClient.Documents.Search<Hotel>("*", parameters);
-
-        //    WriteDocuments(results);
-
-        //    Console.WriteLine("Search the entire index for the term 'hotel':\n");
-
-        //    parameters = new SearchParameters();
-        //    results = indexClient.Documents.Search<Hotel>("hotel", parameters);
-
-        //    WriteDocuments(results);
-        //}
 
         private static void WriteDocuments(DocumentSearchResult<TravelContractContent> searchResults)
         {
