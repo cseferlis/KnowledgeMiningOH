@@ -23,5 +23,8 @@ namespace Challenge2Client
         public List<string> Urls { get; set; } = new List<string>();
         public List<string> Locations { get; set; } = new List<string>();
         public List<string> KeyPhrases { get; set; } = new List<string>();
+
+        public string ocr_text { get; set; }
+        public string merged_text { get; set; }
     }
 }

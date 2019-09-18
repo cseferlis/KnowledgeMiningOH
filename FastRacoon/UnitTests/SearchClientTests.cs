@@ -14,14 +14,25 @@ namespace UnitTests
     {
 
         [Fact]
-        public void CreateDataSourceAndIndexer()
+        public void CreateDataSource()
         {
             IConfigurationRoot configuration = new ConfigurationBuilder()
                    .AddJsonFile("appsettings.json").Build();
 
             using (var serviceClient = CreateSearchServiceClient(configuration))
             {
-                CreateDataSource(configuration, serviceClient);
+                InternalCreateDataSource(configuration, serviceClient);
+            }
+        }
+
+        [Fact]
+        public void CreateIndexer()
+        {
+            IConfigurationRoot configuration = new ConfigurationBuilder()
+                   .AddJsonFile("appsettings.json").Build();
+
+            using (var serviceClient = CreateSearchServiceClient(configuration))
+            {
                 CreateBlobIndexer(serviceClient, configuration["SearchIndexName"]);
             }
         }
@@ -97,11 +108,6 @@ namespace UnitTests
                 categories: entityCategory,
                 defaultLanguageCode: EntityRecognitionSkillLanguage.En);
 
-
-
-
-
-
             var keyPhraseSkill = new KeyPhraseExtractionSkill(
                 name: "keyphraseextractionskill",
                 description: "Key Phrase Extraction Skill",
@@ -110,10 +116,39 @@ namespace UnitTests
                 outputs: new[] { new OutputFieldMappingEntry("keyPhrases", "KeyPhrases") }
                 );
 
+            var imageSkill = new ImageAnalysisSkill(
+                name: "imageanalysisskill",
+                context: "/document/normalized_images/*",
+                inputs: new[] { new InputFieldMappingEntry("image", "/document/normalized_images/*") },
+                outputs: new[] {
+                        new OutputFieldMappingEntry("/document/normalized_images/*/tags/*","Tags"),
+                        new OutputFieldMappingEntry("/document/normalized_images/*/description","Description")
+                    }
+                );
+
+            var ocrSkill = new OcrSkill(
+                name: "ocrskill",
+                context: "/document/normalized_images/*",
+                inputs: new[] { new InputFieldMappingEntry("image", "/document/normalized_images/*") },
+                outputs: new[] { new OutputFieldMappingEntry("text", "ocr_text") }
+                );
+            var mergeTextSkill = new MergeSkill(
+                name: "mergeTextSkill",
+                context: "/document",
+                inputs: new[] {
+                    new InputFieldMappingEntry("Content"),
+                    new InputFieldMappingEntry("ocr_text", "/document/normalized_images/*/ocr_text")
+                },
+                outputs: new[] {
+                    new OutputFieldMappingEntry("merged_text")
+                }
+                );
+
 
 
             var ss = new Skillset("fastracoontravelskillset", "self describing",
-                skills: new List<Skill>() { entityRecognitionSkill, keyPhraseSkill },
+                skills: new List<Skill>() { entityRecognitionSkill, keyPhraseSkill,
+                    ocrSkill, mergeTextSkill},
                 cognitiveServices: new CognitiveServicesByKey(configuration["CogServicesKey"])
                 );
 
@@ -153,20 +188,27 @@ namespace UnitTests
                 },
                 OutputFieldMappings = new[]
                 {
-                    new FieldMapping("/document/Persons","Persons"),
-                    new FieldMapping("/document/Locations","Locations"),
-                    new FieldMapping("/document/Urls","Urls"),
-                    new FieldMapping("/document/KeyPhrases","KeyPhrases")
+                    new FieldMapping("/document/Persons", "Persons"),
+                    new FieldMapping("/document/Locations", "Locations"),
+                    new FieldMapping("/document/Urls", "Urls"),
+                    new FieldMapping("/document/KeyPhrases", "KeyPhrases")
                 }
                 ,
-                SkillsetName = "fastracoontravelskillset"
+                SkillsetName = "fastracoontravelskillset",
+                Parameters = new IndexingParameters
+                {
+                    Configuration = new Dictionary<string, object>()
+                    {
+                        { "dataToExtract", "contentAndMetadata" },
+                        { "imageAction", "generateNormalizedImages" }
+                    }
+                }
             };
 
-            var s = travelBlobIndexer.ToString();
             serviceClient.Indexers.CreateOrUpdate(travelBlobIndexer);
         }
 
-        private static void CreateDataSource(IConfigurationRoot configuration, SearchServiceClient serviceClient)
+        private static void InternalCreateDataSource(IConfigurationRoot configuration, SearchServiceClient serviceClient)
         {
             DataSource ds = new DataSource()
             {
