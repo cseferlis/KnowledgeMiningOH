@@ -2,6 +2,7 @@ using Challenge2Client;
 using Microsoft.Azure.Search;
 using Microsoft.Azure.Search.Models;
 using Microsoft.Extensions.Configuration;
+using Microsoft.VisualStudio.TestPlatform.TestHost;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -15,10 +16,8 @@ namespace UnitTests
         [Fact]
         public void CreateDataSourceAndIndexer()
         {
-            IConfigurationBuilder builder = new ConfigurationBuilder()
-                   .AddJsonFile("appsettings.json");
-
-            IConfigurationRoot configuration = builder.Build();
+            IConfigurationRoot configuration = new ConfigurationBuilder()
+                   .AddJsonFile("appsettings.json").Build();
 
             using (var serviceClient = CreateSearchServiceClient(configuration))
             {
@@ -84,7 +83,7 @@ namespace UnitTests
             {
                 new OutputFieldMappingEntry(name: "persons", "Persons"),
                 new OutputFieldMappingEntry(name: "locations", "Locations"),
-                new OutputFieldMappingEntry(name: "urls", "Urls")
+                new OutputFieldMappingEntry(name: "urls", "Urls"),
             };
 
             var entityCategory = new List<EntityCategory>()
@@ -98,8 +97,23 @@ namespace UnitTests
                 categories: entityCategory,
                 defaultLanguageCode: EntityRecognitionSkillLanguage.En);
 
+
+
+
+
+
+            var keyPhraseSkill = new KeyPhraseExtractionSkill(
+                name: "keyphraseextractionskill",
+                description: "Key Phrase Extraction Skill",
+                context: "/document",
+                inputs: new[] { new InputFieldMappingEntry("text", "/document/Content") },
+                outputs: new[] { new OutputFieldMappingEntry("keyPhrases", "KeyPhrases") }
+                );
+
+
+
             var ss = new Skillset("fastracoontravelskillset", "self describing",
-                skills: new[] { entityRecognitionSkill },
+                skills: new List<Skill>() { entityRecognitionSkill, keyPhraseSkill },
                 cognitiveServices: new CognitiveServicesByKey(configuration["CogServicesKey"])
                 );
 
@@ -109,6 +123,19 @@ namespace UnitTests
             }
         }
 
+        [Fact]
+        public void CreateIndex()
+        {
+            IConfigurationRoot configuration = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json").Build();
+
+            using (var serviceClient = CreateSearchServiceClient(configuration))
+            {
+                Challenge2Client.Program.CreateIndex(
+                    indexName: configuration["SearchIndexName"],
+                    serviceClient: serviceClient);
+            }
+        }
 
         private static void CreateBlobIndexer(SearchServiceClient serviceClient, string indexName)
         {
@@ -128,9 +155,11 @@ namespace UnitTests
                 {
                     new FieldMapping("/document/Persons","Persons"),
                     new FieldMapping("/document/Locations","Locations"),
-                    new FieldMapping("/document/Urls","Urls")
+                    new FieldMapping("/document/Urls","Urls"),
+                    new FieldMapping("/document/KeyPhrases","KeyPhrases")
                 }
-                , SkillsetName = "fastracoontravelskillset"
+                ,
+                SkillsetName = "fastracoontravelskillset"
             };
 
             var s = travelBlobIndexer.ToString();

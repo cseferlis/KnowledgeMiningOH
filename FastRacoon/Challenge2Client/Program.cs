@@ -9,7 +9,7 @@ using System.Net;
 
 namespace Challenge2Client
 {
-    class Program
+    public class Program
     {
         // This sample shows how to delete, create, upload documents and query an index
         static void Main(string[] args)
@@ -176,7 +176,7 @@ namespace Challenge2Client
             return indexClient;
         }
 
-        private static void CreateIndex(string indexName, SearchServiceClient serviceClient)
+        public static void CreateIndex(string indexName, SearchServiceClient serviceClient)
         {
             var definition = new Index()
             {
