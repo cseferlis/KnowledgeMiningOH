@@ -27,8 +27,8 @@ namespace UnitTests
             var parameters =
                 new SearchParameters()
                 {
-                    SearchFields = new[] { "content", "file_name", "url" },
-                    Select = new[] { "file_name", "url", "last_modified"}
+                    SearchFields = new[] { "Content", "FileName", "Url" },
+                    Select = new[] { "FileName", "Url", "LastModified"}
                 };
 
             // Test Case 1 - the file name, URL, size, and last modified date of all documents that include "New York" (there should be 18)
