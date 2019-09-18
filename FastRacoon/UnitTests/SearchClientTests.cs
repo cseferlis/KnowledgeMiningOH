@@ -3,6 +3,7 @@ using Microsoft.Azure.Search;
 using Microsoft.Azure.Search.Models;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Xunit;
 
@@ -20,40 +21,17 @@ namespace UnitTests
 
             SearchServiceClient serviceClient = CreateSearchServiceClient(configuration);
 
+            CreateDataSource(configuration, serviceClient);
+
             var indexName = configuration["SearchIndexName"];
-
-            DataSource ds = new DataSource()
-            {
-                Name = "travelblobs",
-                Type = DataSourceType.AzureBlob,
-                Container = new DataContainer("documents"),
-                Credentials = new DataSourceCredentials("DefaultEndpointsProtocol=https;AccountName=margiesdocumentrepo;AccountKey=VzpvLxQAFzlQJqfogFA8b4INBZh6t9aExqwQrjTFYeHET+ydKaMTcIYp890JilEVG+oXPqruFsWNA9vsVo6d9g==;EndpointSuffix=core.windows.net")
-            };
-            serviceClient.DataSources.CreateOrUpdate(ds);
-
-            Indexer travelBlobIndexer = new Indexer()
-            {
-                Name = "travelblobindexer",
-                DataSourceName = "travelblobs",
-                TargetIndexName = indexName,
-                FieldMappings = new[]
-                {
-                    new FieldMapping("metadata_storage_name","FileName"),
-                    new FieldMapping("metadata_storage_path","Url"),
-                    new FieldMapping("metadata_storage_last_modified","LastModified"),
-                    new FieldMapping("metadata_storage_size","Bytes")
-                }
-                ,
-            };
-
-            serviceClient.Indexers.CreateOrUpdate(travelBlobIndexer);
+            CreateBlobIndexer(serviceClient, indexName);
 
             var searchIndexClient = CreateSearchIndexClient(indexName, configuration);
             var parameters =
                 new SearchParameters()
                 {
                     SearchFields = new[] { "Content", "FileName", "Url" },
-                    Select = new[] { "FileName", "Url", "LastModified", "Bytes"},
+                    Select = new[] { "FileName", "Url", "LastModified", "Bytes" },
 
                 };
 
@@ -80,6 +58,82 @@ namespace UnitTests
             Assert.True(count == 2);
 
         }
+
+        [Fact]
+        public void CreateSkillset()
+        {
+            IConfigurationRoot configuration = new ConfigurationBuilder()
+                                                .AddJsonFile("appsettings.json").Build();
+
+            var inputMappings = new List<InputFieldMappingEntry>
+            {
+                new InputFieldMappingEntry(
+                name: "text",
+                source: "/document/Content")
+            };
+
+            var outputMappings = new List<OutputFieldMappingEntry>
+            {
+                new OutputFieldMappingEntry(name: "persons"),
+                new OutputFieldMappingEntry(name: "locations"),
+                new OutputFieldMappingEntry(name: "url")
+            };
+
+            var entityCategory = new List<EntityCategory>()
+                { EntityCategory.Location, EntityCategory.Person, EntityCategory.Url };
+
+            var entityRecognitionSkill = new EntityRecognitionSkill(
+                description: "Recognize organizations",
+                context: "/document",
+                inputs: inputMappings,
+                outputs: outputMappings,
+                categories: entityCategory,
+                defaultLanguageCode: EntityRecognitionSkillLanguage.En);
+
+            var ss = new Skillset("FastRacoonTravelSkillSet", "self describing",
+                skills: new[] { entityRecognitionSkill },
+                cognitiveServices: new CognitiveServicesByKey(configuration["CogServicesKey"])
+                );
+
+            using (var serviceClient = CreateSearchServiceClient(configuration))
+            {
+                serviceClient.Skillsets.CreateOrUpdate(ss);
+            }
+        }
+
+
+        private static void CreateBlobIndexer(SearchServiceClient serviceClient, string indexName)
+        {
+            Indexer travelBlobIndexer = new Indexer()
+            {
+                Name = "travelblobindexer",
+                DataSourceName = "travelblobs",
+                TargetIndexName = indexName,
+                FieldMappings = new[]
+                {
+                    new FieldMapping("metadata_storage_name","FileName"),
+                    new FieldMapping("metadata_storage_path","Url"),
+                    new FieldMapping("metadata_storage_last_modified","LastModified"),
+                    new FieldMapping("metadata_storage_size","Bytes")
+                }
+                ,
+            };
+
+            serviceClient.Indexers.CreateOrUpdate(travelBlobIndexer);
+        }
+
+        private static void CreateDataSource(IConfigurationRoot configuration, SearchServiceClient serviceClient)
+        {
+            DataSource ds = new DataSource()
+            {
+                Name = "travelblobs",
+                Type = DataSourceType.AzureBlob,
+                Container = new DataContainer("documents"),
+                Credentials = new DataSourceCredentials(configuration["storageconnection"])
+            };
+            serviceClient.DataSources.CreateOrUpdate(ds);
+        }
+
         private static SearchServiceClient CreateSearchServiceClient(
             IConfigurationRoot configuration)
         {
