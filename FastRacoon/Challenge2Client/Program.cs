@@ -2,7 +2,9 @@
 using Microsoft.Azure.Search.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
+using Microsoft.Rest.Azure;
 using System;
+using System.Net;
 
 namespace Challenge2Client
 {
@@ -15,7 +17,8 @@ namespace Challenge2Client
             {
                 SearchIndexName = "travelcontractindex",
                 SearchServiceAdminApiKey = "C7748B5DE38F1579AB6778141A44DADD",
-                SearchServiceName = "fastracoonsearch"
+                SearchServiceName = "fastracoonsearch",
+                DataSource = "travelblobs"
             };
 
             SearchServiceClient serviceClient = CreateSearchServiceClient(configuration);
@@ -36,7 +39,38 @@ namespace Challenge2Client
             ISearchIndexClient indexClientForQueries = CreateSearchIndexClient(indexName, configuration);
 
             // ToDo: Create Indexer
-            // here!!!!
+            Indexer indexer = new Indexer(
+                 name: "travel-contract-indexer",
+                 dataSourceName: configuration.DataSource,
+                 targetIndexName: configuration.SearchIndexName,
+                 schedule: new IndexingSchedule(TimeSpan.FromDays(1)));
+
+            // Indexers contain metadata about how much they have already indexed 
+            // If we already ran the sample, the indexer will remember that it already 
+            // indexed the sample data and not run again 
+            // To avoid this, reset the indexer if it exists 
+            bool exists = serviceClient.Indexers.Exists(indexer.Name);
+
+            if (exists)
+            {
+                serviceClient.Indexers.Reset(indexer.Name);
+            }
+
+            serviceClient.Indexers.CreateOrUpdate(indexer);
+
+
+            // We created the indexer with a schedule, but we also 
+            // want to run it immediately 
+            Console.WriteLine("Running Azure SQL indexer...");
+
+            try
+            {
+                serviceClient.Indexers.Run(indexer.Name);
+            }
+            catch (CloudException e) when (e.Response.StatusCode == (HttpStatusCode)429)
+            {
+                Console.WriteLine("Failed to run indexer: {0}", e.Response.Content);
+            }
 
             //RunQueries(indexClientForQueries);
 
