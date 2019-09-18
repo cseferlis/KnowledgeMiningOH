@@ -144,11 +144,20 @@ namespace UnitTests
                 }
                 );
 
-
+            //public SentimentSkill(IList<InputFieldMappingEntry> inputs, IList<OutputFieldMappingEntry> outputs, string name = null, string description = null, string context = null, SentimentSkillLanguage? defaultLanguageCode = null);
+            var sentimentskill = new SentimentSkill(
+                name: "sentimentskill",
+                description: "Our favorite Sentiment Skill",
+                context: "/document",
+                defaultLanguageCode: SentimentSkillLanguage.En,
+                inputs: new[] { new InputFieldMappingEntry("text", "/document/Content") },
+                outputs: new[] { new OutputFieldMappingEntry("score", "Sentiment") }
+                );
 
             var ss = new Skillset("fastracoontravelskillset", "self describing",
                 skills: new List<Skill>() { entityRecognitionSkill, keyPhraseSkill,
                     ocrSkill, mergeTextSkill},
+                skills: new List<Skill>() { entityRecognitionSkill, keyPhraseSkill,sentimentskill },
                 cognitiveServices: new CognitiveServicesByKey(configuration["CogServicesKey"])
                 );
 
@@ -192,6 +201,7 @@ namespace UnitTests
                     new FieldMapping("/document/Locations", "Locations"),
                     new FieldMapping("/document/Urls", "Urls"),
                     new FieldMapping("/document/KeyPhrases", "KeyPhrases"),
+                    new FieldMapping("/document/Sentiment","Sentiment"),
                     new FieldMapping("/document/ocr_text", "OcrText"),
                     new FieldMapping("/document/merged_text", "MergedText")
                 }
