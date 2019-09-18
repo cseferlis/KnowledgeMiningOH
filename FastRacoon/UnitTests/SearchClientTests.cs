@@ -11,22 +11,30 @@ namespace UnitTests
 {
     public class SearchClientTests
     {
+
         [Fact]
-        public void BasicSearch()
+        public void CreateDataSourceAndIndexer()
         {
             IConfigurationBuilder builder = new ConfigurationBuilder()
                    .AddJsonFile("appsettings.json");
 
             IConfigurationRoot configuration = builder.Build();
 
-            SearchServiceClient serviceClient = CreateSearchServiceClient(configuration);
+            using (var serviceClient = CreateSearchServiceClient(configuration))
+            {
+                CreateDataSource(configuration, serviceClient);
+                CreateBlobIndexer(serviceClient, configuration["SearchIndexName"]);
+            }
+        }
 
-            CreateDataSource(configuration, serviceClient);
+        [Fact]
+        public void BasicSearch()
+        {
+            IConfigurationRoot configuration = new ConfigurationBuilder()
+                   .AddJsonFile("appsettings.json").Build();
 
-            var indexName = configuration["SearchIndexName"];
-            CreateBlobIndexer(serviceClient, indexName);
-
-            var searchIndexClient = CreateSearchIndexClient(indexName, configuration);
+            var searchIndexClient = CreateSearchIndexClient(
+                    configuration["SearchIndexName"], configuration);
             var parameters =
                 new SearchParameters()
                 {
@@ -111,14 +119,21 @@ namespace UnitTests
                 TargetIndexName = indexName,
                 FieldMappings = new[]
                 {
-                    new FieldMapping("metadata_storage_name","FileName"),
-                    new FieldMapping("metadata_storage_path","Url"),
-                    new FieldMapping("metadata_storage_last_modified","LastModified"),
-                    new FieldMapping("metadata_storage_size","Bytes")
+                    new FieldMapping("metadata_storage_name", "FileName"),
+                    new FieldMapping("metadata_storage_path", "Url"),
+                    new FieldMapping("metadata_storage_last_modified", "LastModified"),
+                    new FieldMapping("metadata_storage_size", "Bytes"),
+                },
+                OutputFieldMappings = new[]
+                {
+                    new FieldMapping("/document/Persons","Persons"),
+                    new FieldMapping("/document/Locations","Locations"),
+                    new FieldMapping("/document/Urls","Urls")
                 }
-                ,
+                , SkillsetName = "fastracoontravelskillset"
             };
 
+            var s = travelBlobIndexer.ToString();
             serviceClient.Indexers.CreateOrUpdate(travelBlobIndexer);
         }
 
