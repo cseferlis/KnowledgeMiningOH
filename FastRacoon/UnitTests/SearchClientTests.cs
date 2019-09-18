@@ -74,9 +74,9 @@ namespace UnitTests
 
             var outputMappings = new List<OutputFieldMappingEntry>
             {
-                new OutputFieldMappingEntry(name: "persons"),
-                new OutputFieldMappingEntry(name: "locations"),
-                new OutputFieldMappingEntry(name: "url")
+                new OutputFieldMappingEntry(name: "persons", "Persons"),
+                new OutputFieldMappingEntry(name: "locations", "Locations"),
+                new OutputFieldMappingEntry(name: "urls", "Urls")
             };
 
             var entityCategory = new List<EntityCategory>()
@@ -90,7 +90,7 @@ namespace UnitTests
                 categories: entityCategory,
                 defaultLanguageCode: EntityRecognitionSkillLanguage.En);
 
-            var ss = new Skillset("FastRacoonTravelSkillSet", "self describing",
+            var ss = new Skillset("fastracoontravelskillset", "self describing",
                 skills: new[] { entityRecognitionSkill },
                 cognitiveServices: new CognitiveServicesByKey(configuration["CogServicesKey"])
                 );
