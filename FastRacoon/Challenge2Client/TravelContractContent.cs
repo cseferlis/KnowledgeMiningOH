@@ -18,5 +18,8 @@ namespace Challenge2Client
         public string Content { get; set; }
         public int Bytes { get; set; }
         public DateTime LastModified { get; set; }
+        List<string> persons = new List<string>();
+        List<string> urls = new List<string>();
+        List<string> locations = new List<string>();
     }
 }

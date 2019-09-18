@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Rest.Azure;
 using System;
+using System.Collections.Generic;
 using System.Net;
 
 namespace Challenge2Client
@@ -25,6 +26,14 @@ namespace Challenge2Client
 
             string indexName = configuration.SearchIndexName;
 
+            if (args.Length > 0 && args[0] == "dl")
+            {
+                Console.WriteLine("{0}", "Deleting index...\n");
+                DeleteIndexIfExists(indexName, serviceClient);
+
+                return;
+            }
+
             DataSource ds = new DataSource()
             {
                 Name = "travelblobs",
@@ -33,6 +42,55 @@ namespace Challenge2Client
                 Credentials = new DataSourceCredentials("DefaultEndpointsProtocol=https;AccountName=margiesdocumentrepo;AccountKey=VzpvLxQAFzlQJqfogFA8b4INBZh6t9aExqwQrjTFYeHET+ydKaMTcIYp890JilEVG+oXPqruFsWNA9vsVo6d9g==;EndpointSuffix=core.windows.net")
             };
             serviceClient.DataSources.CreateOrUpdate(ds);
+
+            Console.WriteLine("Creating skillset");
+
+            List<InputFieldMappingEntry> inputMappings = new List<InputFieldMappingEntry>();
+            inputMappings.Add(new InputFieldMappingEntry(
+                name: "text",
+                source: "/document/Content"));
+
+            List<OutputFieldMappingEntry> outputMappings = new List<OutputFieldMappingEntry>();
+            outputMappings.Add(new OutputFieldMappingEntry(name: "persons"));
+            outputMappings.Add(new OutputFieldMappingEntry(name: "locations"));
+            outputMappings.Add(new OutputFieldMappingEntry(name: "url"));
+
+            List<EntityCategory> entityCategory = new List<EntityCategory>
+            {
+                EntityCategory.Organization,
+                EntityCategory.Person,
+                EntityCategory.Url
+            };
+
+            EntityRecognitionSkill entityRecognitionSkill = new EntityRecognitionSkill(
+                description: "Recognize organizations",
+                context: "/document/Content",
+                inputs: inputMappings,
+                outputs: outputMappings,
+                categories: entityCategory,
+                defaultLanguageCode: EntityRecognitionSkillLanguage.En);
+
+            // ToDo: Add key Phrase
+            // ToDo: Add sentiment
+
+            List<Skill> skills = new List<Skill>();
+            skills.Add(entityRecognitionSkill);
+            //skills.Add(keyPhraseExtractionSkill);
+            //skills.Add(sentimentAnalysisSkill);
+
+            Skillset skillset = new Skillset(
+                name: "demoskillset",
+                description: "Demo skillset",
+                skills: skills);
+
+            try
+            {
+                serviceClient.Skillsets.CreateOrUpdate(skillset);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error creating skill");
+            }
 
             Console.WriteLine("{0}", "Creating index...\n");
             CreateIndex(indexName, serviceClient);
@@ -96,6 +154,14 @@ namespace Challenge2Client
 
             Console.WriteLine("{0}", "Complete.  Press any key to end application...\n");
             Console.ReadKey();
+        }
+
+        private static void DeleteIndexIfExists(string indexName, SearchServiceClient serviceClient)
+        {
+            if (serviceClient.Indexes.Exists(indexName))
+            {
+                serviceClient.Indexes.Delete(indexName);
+            }
         }
 
         private static SearchServiceClient CreateSearchServiceClient(SearchConfiguration configuration)
