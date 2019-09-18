@@ -25,7 +25,7 @@ namespace Challenge2Client
         public List<string> KeyPhrases { get; set; } = new List<string>();
         public double Sentiment { get; set; }
 
-        public string ocr_text { get; set; }
-        public string merged_text { get; set; }
+        public List<string> OcrText { get; set; } = new List<string>();
+        public string MergedText { get; set; }
     }
 }

@@ -130,19 +130,23 @@ namespace UnitTests
                 name: "ocrskill",
                 context: "/document/normalized_images/*",
                 inputs: new[] { new InputFieldMappingEntry("image", "/document/normalized_images/*") },
-                outputs: new[] { new OutputFieldMappingEntry("text", "ocr_text") }
+                outputs: new[] { new OutputFieldMappingEntry("text", "OcrText") }
                 );
+
             var mergeTextSkill = new MergeSkill(
                 name: "mergeTextSkill",
                 context: "/document",
                 inputs: new[] {
-                    new InputFieldMappingEntry("Content"),
-                    new InputFieldMappingEntry("ocr_text", "/document/normalized_images/*/ocr_text")
+                    new InputFieldMappingEntry("text", "/document/Content"),
+                    new InputFieldMappingEntry("itemsToInsert", "/document/normalized_images/*/OcrText")
                 },
                 outputs: new[] {
-                    new OutputFieldMappingEntry("merged_text")
+                    new OutputFieldMappingEntry("mergedText", "MergedText")
                 }
                 );
+
+            /*Microsoft.Rest.Azure.CloudException : One or more skills are invalid. Details: Skill 'mergeTextSkill' is not allowed to have recursively defined inputs
+            */
 
             //public SentimentSkill(IList<InputFieldMappingEntry> inputs, IList<OutputFieldMappingEntry> outputs, string name = null, string description = null, string context = null, SentimentSkillLanguage? defaultLanguageCode = null);
             var sentimentskill = new SentimentSkill(
@@ -155,9 +159,8 @@ namespace UnitTests
                 );
 
             var ss = new Skillset("fastracoontravelskillset", "self describing",
-                skills: new List<Skill>() { entityRecognitionSkill, keyPhraseSkill,
+                skills: new List<Skill>() { entityRecognitionSkill, keyPhraseSkill, sentimentskill,
                     ocrSkill, mergeTextSkill},
-                skills: new List<Skill>() { entityRecognitionSkill, keyPhraseSkill,sentimentskill },
                 cognitiveServices: new CognitiveServicesByKey(configuration["CogServicesKey"])
                 );
 
@@ -202,8 +205,8 @@ namespace UnitTests
                     new FieldMapping("/document/Urls", "Urls"),
                     new FieldMapping("/document/KeyPhrases", "KeyPhrases"),
                     new FieldMapping("/document/Sentiment","Sentiment"),
-                    new FieldMapping("/document/ocr_text", "OcrText"),
-                    new FieldMapping("/document/merged_text", "MergedText")
+                    new FieldMapping("/document/normalized_images/*/OcrText", "OcrText"),
+                    new FieldMapping("/document/MergedText", "MergedText")
                 }
                 ,
                 SkillsetName = "fastracoontravelskillset",
