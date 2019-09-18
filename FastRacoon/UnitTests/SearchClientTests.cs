@@ -68,12 +68,14 @@ namespace UnitTests
             Assert.True(count == 2);
 
             // Test Case 3 - Filtering based on specific fields - for example, all documents that contain the term "Las Vegas" that have "reviews" in their URL (there should be 13)
-            docSearchResult = searchIndexClient.Documents.Search<TravelContractContent>("content:\"Las Vegas\" AND url:reviews", parameters);
+            parameters.Filter = "search.ismatch('reviews', 'Url')";
+            docSearchResult = searchIndexClient.Documents.Search<TravelContractContent>("\"Las Vegas\"", parameters);
             count = docSearchResult.Results.Count;
             Assert.True(count == 13);
 
             // Test Case 4 - and all documents containing the term "Las Vegas" that that do not have "reviews" in their URL (there should be 2).
-            docSearchResult = searchIndexClient.Documents.Search<TravelContractContent>("content:\"Las Vegas\" NOT url:reviews", parameters);
+            parameters.Filter = "not search.ismatch('reviews', 'Url')";
+            docSearchResult = searchIndexClient.Documents.Search<TravelContractContent>("\"Las Vegas\"", parameters);
             count = docSearchResult.Results.Count;
             Assert.True(count == 2);
 
