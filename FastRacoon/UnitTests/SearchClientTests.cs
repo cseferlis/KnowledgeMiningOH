@@ -191,7 +191,9 @@ namespace UnitTests
                     new FieldMapping("/document/Persons", "Persons"),
                     new FieldMapping("/document/Locations", "Locations"),
                     new FieldMapping("/document/Urls", "Urls"),
-                    new FieldMapping("/document/KeyPhrases", "KeyPhrases")
+                    new FieldMapping("/document/KeyPhrases", "KeyPhrases"),
+                    new FieldMapping("/document/ocr_text", "OcrText"),
+                    new FieldMapping("/document/merged_text", "MergedText")
                 }
                 ,
                 SkillsetName = "fastracoontravelskillset",
