@@ -51,20 +51,20 @@ namespace Challenge2Client
                 source: "/document/Content"));
 
             List<OutputFieldMappingEntry> outputMappings = new List<OutputFieldMappingEntry>();
-            outputMappings.Add(new OutputFieldMappingEntry(name: "persons"));
-            outputMappings.Add(new OutputFieldMappingEntry(name: "locations"));
-            outputMappings.Add(new OutputFieldMappingEntry(name: "url"));
+            outputMappings.Add(new OutputFieldMappingEntry(name: "persons", "Persons"));
+            outputMappings.Add(new OutputFieldMappingEntry(name: "locations", "Locations"));
+            outputMappings.Add(new OutputFieldMappingEntry(name: "urls", "Urls"));
 
             List<EntityCategory> entityCategory = new List<EntityCategory>
             {
-                EntityCategory.Organization,
+                EntityCategory.Location,
                 EntityCategory.Person,
                 EntityCategory.Url
             };
 
             EntityRecognitionSkill entityRecognitionSkill = new EntityRecognitionSkill(
                 description: "Recognize organizations",
-                context: "/document/Content",
+                context: "/document",
                 inputs: inputMappings,
                 outputs: outputMappings,
                 categories: entityCategory,
@@ -79,7 +79,7 @@ namespace Challenge2Client
             //skills.Add(sentimentAnalysisSkill);
 
             Skillset skillset = new Skillset(
-                name: "demoskillset",
+                name: "fastracoonskillset",
                 description: "Demo skillset",
                 skills: skills);
 
@@ -113,8 +113,15 @@ namespace Challenge2Client
                     new FieldMapping("metadata_storage_name","FileName"),
                     new FieldMapping("metadata_storage_path","Url"),
                     new FieldMapping("metadata_storage_last_modified","LastModified"),
-                    new FieldMapping("metadata_storage_size","Bytes"),
-                 });
+                    new FieldMapping("metadata_storage_size","Bytes")
+                 },
+                 outputFieldMappings: new []
+                 {
+                    new FieldMapping("/document/Persons","Persons"),
+                    new FieldMapping("/document/Locations","Locations"),
+                    new FieldMapping("/document/Urls","Urls"),
+                 },
+                 skillsetName: "fastracoonskillset");
 
             // Indexers contain metadata about how much they have already indexed 
             // If we already ran the sample, the indexer will remember that it already 
