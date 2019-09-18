@@ -23,5 +23,6 @@ namespace Challenge2Client
         public List<string> Urls { get; set; } = new List<string>();
         public List<string> Locations { get; set; } = new List<string>();
         public List<string> KeyPhrases { get; set; } = new List<string>();
+        public double Sentiment { get; set; }
     }
 }
