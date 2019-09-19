@@ -158,9 +158,19 @@ namespace UnitTests
                 outputs: new[] { new OutputFieldMappingEntry("score", "Sentiment") }
                 );
 
+            var commonWordsSkill = new WebApiSkill(
+                name: "commonWordsSkill",
+                description: "No description for you",
+                                batchSize: 1,
+                httpMethod: "POST",
+                uri: configuration["CommonWordsApiUrl"],
+                context: "/document",
+                inputs: new[] { new InputFieldMappingEntry("text", "/document/MergedText") },
+                outputs: new[] { new OutputFieldMappingEntry("words", "CommonWords") }
+                );
+
             var ss = new Skillset("fastracoontravelskillset", "self describing",
-                skills: new List<Skill>() { entityRecognitionSkill, keyPhraseSkill, sentimentskill,
-                    ocrSkill, mergeTextSkill},
+                skills: new List<Skill>() { entityRecognitionSkill, keyPhraseSkill, sentimentskill, ocrSkill, mergeTextSkill, commonWordsSkill},
                 cognitiveServices: new CognitiveServicesByKey(configuration["CogServicesKey"])
                 );
 
@@ -206,7 +216,8 @@ namespace UnitTests
                     new FieldMapping("/document/KeyPhrases", "KeyPhrases"),
                     new FieldMapping("/document/Sentiment","Sentiment"),
                     new FieldMapping("/document/normalized_images/*/OcrText", "OcrText"),
-                    new FieldMapping("/document/MergedText", "MergedText")
+                    new FieldMapping("/document/MergedText", "MergedText"),
+                    new FieldMapping("/document/CommonWords", "CommonWords")
                 }
                 ,
                 SkillsetName = "fastracoontravelskillset",

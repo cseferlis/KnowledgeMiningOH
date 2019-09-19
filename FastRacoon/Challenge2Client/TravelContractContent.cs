@@ -27,5 +27,7 @@ namespace Challenge2Client
 
         public List<string> OcrText { get; set; } = new List<string>();
         public string MergedText { get; set; }
-    }
+
+        public List<string> CommonWords { get; set; } = new List<string>();
+     }
 }
