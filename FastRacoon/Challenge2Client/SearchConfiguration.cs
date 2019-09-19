@@ -11,5 +11,6 @@ namespace Challenge2Client
         public string SearchServiceAdminApiKey { get; set; }
         public string SearchIndexName { get; set; }
         public string DataSource { get; set; }
+        public string CogServicesKey { get; set; }
     }
 }

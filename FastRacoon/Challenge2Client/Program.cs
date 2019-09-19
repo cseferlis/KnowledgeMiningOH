@@ -19,7 +19,8 @@ namespace Challenge2Client
                 SearchIndexName = "travelcontractindex",
                 SearchServiceAdminApiKey = "C7748B5DE38F1579AB6778141A44DADD",
                 SearchServiceName = "fastracoonsearch",
-                DataSource = "travelblobs"
+                DataSource = "travelblobs",
+                CogServicesKey = "b601b26461de49208f9166e71aac78fa"
             };
 
             SearchServiceClient serviceClient = CreateSearchServiceClient(configuration);
@@ -81,7 +82,9 @@ namespace Challenge2Client
             Skillset skillset = new Skillset(
                 name: "fastracoonskillset",
                 description: "Demo skillset",
-                skills: skills);
+                skills: new[] { entityRecognitionSkill },
+                cognitiveServices: new CognitiveServicesByKey(configuration.CogServicesKey)
+                );
 
             try
             {
@@ -127,12 +130,12 @@ namespace Challenge2Client
             // If we already ran the sample, the indexer will remember that it already 
             // indexed the sample data and not run again 
             // To avoid this, reset the indexer if it exists 
-            bool exists = serviceClient.Indexers.Exists(indexer.Name);
+            //bool exists = serviceClient.Indexers.Exists(indexer.Name);
 
-            if (exists)
-            {
-                serviceClient.Indexers.Reset(indexer.Name);
-            }
+            //if (exists)
+            //{
+            //    serviceClient.Indexers.Reset(indexer.Name);
+            //}
 
             serviceClient.Indexers.CreateOrUpdate(indexer);
             var parameters =
