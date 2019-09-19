@@ -1,8 +1,9 @@
 {
   "ExpandedNodes": [
     "",
-    "\\FastRacoon"
+    "\\FastRacoon",
+    "\\FastRacoon\\UnitTests"
   ],
-  "SelectedNode": "\\FastRacoon\\Challenge1Client",
+  "SelectedNode": "\\FastRacoon\\UnitTests",
   "PreviewInSolutionExplorer": false
 }

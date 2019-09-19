@@ -2,6 +2,7 @@ using Challenge2Client;
 using Microsoft.Azure.Search;
 using Microsoft.Azure.Search.Models;
 using Microsoft.Extensions.Configuration;
+using Microsoft.VisualStudio.TestPlatform.TestHost;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -13,16 +14,25 @@ namespace UnitTests
     {
 
         [Fact]
-        public void CreateDataSourceAndIndexer()
+        public void CreateDataSource()
         {
-            IConfigurationBuilder builder = new ConfigurationBuilder()
-                   .AddJsonFile("appsettings.json");
-
-            IConfigurationRoot configuration = builder.Build();
+            IConfigurationRoot configuration = new ConfigurationBuilder()
+                   .AddJsonFile("appsettings.json").Build();
 
             using (var serviceClient = CreateSearchServiceClient(configuration))
             {
-                CreateDataSource(configuration, serviceClient);
+                InternalCreateDataSource(configuration, serviceClient);
+            }
+        }
+
+        [Fact]
+        public void CreateIndexer()
+        {
+            IConfigurationRoot configuration = new ConfigurationBuilder()
+                   .AddJsonFile("appsettings.json").Build();
+
+            using (var serviceClient = CreateSearchServiceClient(configuration))
+            {
                 CreateBlobIndexer(serviceClient, configuration["SearchIndexName"]);
             }
         }
@@ -84,7 +94,7 @@ namespace UnitTests
             {
                 new OutputFieldMappingEntry(name: "persons", "Persons"),
                 new OutputFieldMappingEntry(name: "locations", "Locations"),
-                new OutputFieldMappingEntry(name: "urls", "Urls")
+                new OutputFieldMappingEntry(name: "urls", "Urls"),
             };
 
             var entityCategory = new List<EntityCategory>()
@@ -98,8 +108,69 @@ namespace UnitTests
                 categories: entityCategory,
                 defaultLanguageCode: EntityRecognitionSkillLanguage.En);
 
+            var keyPhraseSkill = new KeyPhraseExtractionSkill(
+                name: "keyphraseextractionskill",
+                description: "Key Phrase Extraction Skill",
+                context: "/document",
+                inputs: new[] { new InputFieldMappingEntry("text", "/document/Content") },
+                outputs: new[] { new OutputFieldMappingEntry("keyPhrases", "KeyPhrases") }
+                );
+
+            var imageSkill = new ImageAnalysisSkill(
+                name: "imageanalysisskill",
+                context: "/document/normalized_images/*",
+                inputs: new[] { new InputFieldMappingEntry("image", "/document/normalized_images/*") },
+                outputs: new[] {
+                        new OutputFieldMappingEntry("/document/normalized_images/*/tags/*","Tags"),
+                        new OutputFieldMappingEntry("/document/normalized_images/*/description","Description")
+                    }
+                );
+
+            var ocrSkill = new OcrSkill(
+                name: "ocrskill",
+                context: "/document/normalized_images/*",
+                inputs: new[] { new InputFieldMappingEntry("image", "/document/normalized_images/*") },
+                outputs: new[] { new OutputFieldMappingEntry("text", "OcrText") }
+                );
+
+            var mergeTextSkill = new MergeSkill(
+                name: "mergeTextSkill",
+                context: "/document",
+                inputs: new[] {
+                    new InputFieldMappingEntry("text", "/document/Content"),
+                    new InputFieldMappingEntry("itemsToInsert", "/document/normalized_images/*/OcrText")
+                },
+                outputs: new[] {
+                    new OutputFieldMappingEntry("mergedText", "MergedText")
+                }
+                );
+
+            /*Microsoft.Rest.Azure.CloudException : One or more skills are invalid. Details: Skill 'mergeTextSkill' is not allowed to have recursively defined inputs
+            */
+
+            //public SentimentSkill(IList<InputFieldMappingEntry> inputs, IList<OutputFieldMappingEntry> outputs, string name = null, string description = null, string context = null, SentimentSkillLanguage? defaultLanguageCode = null);
+            var sentimentskill = new SentimentSkill(
+                name: "sentimentskill",
+                description: "Our favorite Sentiment Skill",
+                context: "/document",
+                defaultLanguageCode: SentimentSkillLanguage.En,
+                inputs: new[] { new InputFieldMappingEntry("text", "/document/Content") },
+                outputs: new[] { new OutputFieldMappingEntry("score", "Sentiment") }
+                );
+
+            var commonWordsSkill = new WebApiSkill(
+                name: "commonWordsSkill",
+                description: "No description for you",
+                                batchSize: 1,
+                httpMethod: "POST",
+                uri: configuration["CommonWordsApiUrl"],
+                context: "/document",
+                inputs: new[] { new InputFieldMappingEntry("text", "/document/MergedText") },
+                outputs: new[] { new OutputFieldMappingEntry("words", "CommonWords") }
+                );
+
             var ss = new Skillset("fastracoontravelskillset", "self describing",
-                skills: new[] { entityRecognitionSkill },
+                skills: new List<Skill>() { entityRecognitionSkill, keyPhraseSkill, sentimentskill, ocrSkill, mergeTextSkill, commonWordsSkill},
                 cognitiveServices: new CognitiveServicesByKey(configuration["CogServicesKey"])
                 );
 
@@ -109,6 +180,19 @@ namespace UnitTests
             }
         }
 
+        [Fact]
+        public void CreateIndex()
+        {
+            IConfigurationRoot configuration = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json").Build();
+
+            using (var serviceClient = CreateSearchServiceClient(configuration))
+            {
+                Challenge2Client.Program.CreateIndex(
+                    indexName: configuration["SearchIndexName"],
+                    serviceClient: serviceClient);
+            }
+        }
 
         private static void CreateBlobIndexer(SearchServiceClient serviceClient, string indexName)
         {
@@ -126,18 +210,31 @@ namespace UnitTests
                 },
                 OutputFieldMappings = new[]
                 {
-                    new FieldMapping("/document/Persons","Persons"),
-                    new FieldMapping("/document/Locations","Locations"),
-                    new FieldMapping("/document/Urls","Urls")
+                    new FieldMapping("/document/Persons", "Persons"),
+                    new FieldMapping("/document/Locations", "Locations"),
+                    new FieldMapping("/document/Urls", "Urls"),
+                    new FieldMapping("/document/KeyPhrases", "KeyPhrases"),
+                    new FieldMapping("/document/Sentiment","Sentiment"),
+                    new FieldMapping("/document/normalized_images/*/OcrText", "OcrText"),
+                    new FieldMapping("/document/MergedText", "MergedText"),
+                    new FieldMapping("/document/CommonWords", "CommonWords")
                 }
-                , SkillsetName = "fastracoontravelskillset"
+                ,
+                SkillsetName = "fastracoontravelskillset",
+                Parameters = new IndexingParameters
+                {
+                    Configuration = new Dictionary<string, object>()
+                    {
+                        { "dataToExtract", "contentAndMetadata" },
+                        { "imageAction", "generateNormalizedImages" }
+                    }
+                }
             };
 
-            var s = travelBlobIndexer.ToString();
             serviceClient.Indexers.CreateOrUpdate(travelBlobIndexer);
         }
 
-        private static void CreateDataSource(IConfigurationRoot configuration, SearchServiceClient serviceClient)
+        private static void InternalCreateDataSource(IConfigurationRoot configuration, SearchServiceClient serviceClient)
         {
             DataSource ds = new DataSource()
             {

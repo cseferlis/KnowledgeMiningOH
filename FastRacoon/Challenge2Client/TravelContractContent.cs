@@ -22,5 +22,12 @@ namespace Challenge2Client
         public List<string> Persons { get; set; } = new List<string>();
         public List<string> Urls { get; set; } = new List<string>();
         public List<string> Locations { get; set; } = new List<string>();
-    }
+        public List<string> KeyPhrases { get; set; } = new List<string>();
+        public double Sentiment { get; set; }
+
+        public List<string> OcrText { get; set; } = new List<string>();
+        public string MergedText { get; set; }
+
+        public List<string> CommonWords { get; set; } = new List<string>();
+     }
 }
